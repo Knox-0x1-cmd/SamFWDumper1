@@ -1,12 +1,7 @@
 # =============================================================================
-# SamFWDumper - Automated Samsung Firmware Extraction
+# SamFWDumper - Images Extractor
 # Copyright (C) 2026 Xiatsuma
 # Licensed under PolyForm Noncommercial License 1.0.0
-# https://polyformproject.org/licenses/noncommercial/1.0.0
-#
-# You may NOT use this file except in compliance with the License.
-# Commercial use, removal of this header, or distribution without attribution
-# is strictly prohibited. For permissions: https://github.com/Xiatsuma
 # =============================================================================
 
 name: 1. Images Extractor
@@ -17,24 +12,26 @@ on:
       url:
         description: 'SamFW Direct Download Link'
         required: true
+        type: string
       compression:
-        description: 'Compression level'
+        description: 'Compression level (0=fastest, 9=best)'
         required: true
         default: '0'
         type: choice
         options:
-        - '0'
-        - '3'
-        - '6'
-        - '9'
+          - '0'
+          - '3'
+          - '6'
+          - '9'
       upload_destination:
-        description: 'Upload destination'
+        description: 'Where to upload results'
         required: true
         default: 'gofile'
         type: choice
         options:
-        - 'gofile'
-        - 'github releases'
+          - 'gofile'
+          - 'github releases'
+      # Partition selection
       extract_system:
         description: 'system.img'
         type: boolean
@@ -96,31 +93,44 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+
 jobs:
   dump:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
             jq \
             xz-utils \
             lz4 \
             unzip \
             curl \
             binutils \
-            android-sdk-libsparse-utils
+            android-sdk-libsparse-utils \
+            e2fsprogs \
+            util-linux \
+            2>/dev/null | tail -5
 
       - name: Make tools executable
         run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/extract_images.sh
 
+<<<<<<< HEAD:.github/workflows/extract_images.yml
       - name: Run Images Extraction
+=======
+      - name: Run Dump Script
+        id: dump
+>>>>>>> Apps:.github/workflows/dump.yml
         run: |
           PARTITIONS=""
           ${{ github.event.inputs.extract_system }} && PARTITIONS="$PARTITIONS system"
@@ -242,4 +252,3 @@ jobs:
             "${ASSETS[@]}"
 
           rm -f "$NOTES_FILE"
-          

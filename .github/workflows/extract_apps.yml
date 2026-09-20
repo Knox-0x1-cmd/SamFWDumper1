@@ -1,18 +1,10 @@
 # =============================================================================
-# SamFWDumper - Automated Samsung Firmware Extraction
+# SamFW Apps Extractor - Extract specific app folders from Samsung firmware
 # Copyright (C) 2026 Xiatsuma
 # Licensed under PolyForm Noncommercial License 1.0.0
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-# https://polyformproject.org/licenses/noncommercial/1.0.0
-#
-# You may NOT use this file except in compliance with the License.
-# Commercial use, removal of this header, or distribution without attribution
-# is strictly prohibited. For permissions: https://github.com/Xiatsuma
-=======
->>>>>>> Apps:.github/workflows/extract_apps.yml
 # =============================================================================
 
-name: 3. Special Targeted Extractor
+name: Apps Extractor
 
 on:
   workflow_dispatch:
@@ -37,24 +29,11 @@ on:
         default: 'gofile'
         type: choice
         options:
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-        - 'gofile'
-        - 'github releases'
-      show_all:
-        description: 'Show ALL folders in app & priv-app'
-        type: boolean
-        default: false
-      output_name:
-        description: 'Output .zip name (default: Apps)'
-        required: false
-        default: 'Apps'
-=======
           - 'gofile'
           - 'github releases'
 
 permissions:
   contents: write
->>>>>>> Apps:.github/workflows/extract_apps.yml
 
 jobs:
   extract:
@@ -78,28 +57,17 @@ jobs:
             curl \
             android-sdk-libsparse-utils \
             e2fsprogs \
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-            f2fs-tools \
-            linux-modules-extra-$(uname -r)
-=======
             2>/dev/null | tail -5
->>>>>>> Apps:.github/workflows/extract_apps.yml
 
       - name: Make tools executable
-        run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/extract_targeted.sh
+        run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/extract_apps.sh
 
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-      - name: Run Targeted Extraction
-=======
       - name: Run Apps Extraction
         id: extract
->>>>>>> Apps:.github/workflows/extract_apps.yml
         run: |
-          bash scripts/extract_targeted.sh \
+          bash scripts/extract_apps.sh \
             "${{ github.event.inputs.url }}" \
-            "${{ github.event.inputs.compression }}" \
-            "${{ github.event.inputs.show_all }}" \
-            "${{ github.event.inputs.output_name }}"
+            "${{ github.event.inputs.compression }}"
 
       - name: Get Firmware Info
         id: fwinfo

@@ -1,18 +1,10 @@
 # =============================================================================
-# SamFWDumper - Automated Samsung Firmware Extraction
+# SamFWDumper - System Files Extractor
 # Copyright (C) 2026 Xiatsuma
 # Licensed under PolyForm Noncommercial License 1.0.0
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-# https://polyformproject.org/licenses/noncommercial/1.0.0
-#
-# You may NOT use this file except in compliance with the License.
-# Commercial use, removal of this header, or distribution without attribution
-# is strictly prohibited. For permissions: https://github.com/Xiatsuma
-=======
->>>>>>> Apps:.github/workflows/extract_apps.yml
 # =============================================================================
 
-name: 3. Special Targeted Extractor
+name: System Files Extractor
 
 on:
   workflow_dispatch:
@@ -37,24 +29,72 @@ on:
         default: 'gofile'
         type: choice
         options:
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-        - 'gofile'
-        - 'github releases'
-      show_all:
-        description: 'Show ALL folders in app & priv-app'
-        type: boolean
-        default: false
-      output_name:
-        description: 'Output .zip name (default: Apps)'
-        required: false
-        default: 'Apps'
-=======
           - 'gofile'
           - 'github releases'
+      # Selection options
+      extract_app:
+        description: 'app (Preinstalled APKs)'
+        type: boolean
+        default: false
+      extract_bin:
+        description: 'bin (System binaries)'
+        type: boolean
+        default: false
+      extract_cameradata:
+        description: 'cameradata (Camera tuning)'
+        type: boolean
+        default: false
+      extract_etc:
+        description: 'etc (Configs & permissions)'
+        type: boolean
+        default: false
+      extract_lib:
+        description: 'lib (32-bit libraries)'
+        type: boolean
+        default: false
+      extract_lib64:
+        description: 'lib64 (64-bit libraries)'
+        type: boolean
+        default: false
+      extract_media:
+        description: 'media (Sounds, fonts, bootanimation)'
+        type: boolean
+        default: false
+      extract_priv_app:
+        description: 'priv-app (Privileged APKs)'
+        type: boolean
+        default: false
+      extract_saiv:
+        description: 'saiv (Samsung AI Vision folder from system)'
+        type: boolean
+        default: false
+      extract_config:
+        description: 'config (XML feature & permission configs)'
+        type: boolean
+        default: false
+      extract_super_config:
+        description: 'super config (Repack metadata for super.img)'
+        type: boolean
+        default: false
+      extract_build_prop:
+        description: 'build.prop (Device properties)'
+        type: boolean
+        default: false
+      extract_framework_rro:
+        description: 'framework-res RRO APK (from product/overlay)'
+        type: boolean
+        default: false
+      extract_pit:
+        description: 'PIT file (Partition Information Table from CSC)'
+        type: boolean
+        default: false
+      extract_wallpaper_res:
+        description: 'wallpaper-res.apk (Wallpaper resources APK from priv-app)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
->>>>>>> Apps:.github/workflows/extract_apps.yml
 
 jobs:
   extract:
@@ -78,28 +118,32 @@ jobs:
             curl \
             android-sdk-libsparse-utils \
             e2fsprogs \
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-            f2fs-tools \
-            linux-modules-extra-$(uname -r)
-=======
             2>/dev/null | tail -5
->>>>>>> Apps:.github/workflows/extract_apps.yml
 
       - name: Make tools executable
-        run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/extract_targeted.sh
+        run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/system_files.sh
 
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-      - name: Run Targeted Extraction
-=======
-      - name: Run Apps Extraction
+      - name: Run System Files Extraction
         id: extract
->>>>>>> Apps:.github/workflows/extract_apps.yml
         run: |
-          bash scripts/extract_targeted.sh \
+          bash scripts/system_files.sh \
             "${{ github.event.inputs.url }}" \
             "${{ github.event.inputs.compression }}" \
-            "${{ github.event.inputs.show_all }}" \
-            "${{ github.event.inputs.output_name }}"
+            "${{ github.event.inputs.extract_app }}" \
+            "${{ github.event.inputs.extract_bin }}" \
+            "${{ github.event.inputs.extract_cameradata }}" \
+            "${{ github.event.inputs.extract_etc }}" \
+            "${{ github.event.inputs.extract_lib }}" \
+            "${{ github.event.inputs.extract_lib64 }}" \
+            "${{ github.event.inputs.extract_media }}" \
+            "${{ github.event.inputs.extract_priv_app }}" \
+            "${{ github.event.inputs.extract_saiv }}" \
+            "${{ github.event.inputs.extract_config }}" \
+            "${{ github.event.inputs.extract_super_config }}" \
+            "${{ github.event.inputs.extract_build_prop }}" \
+            "${{ github.event.inputs.extract_framework_rro }}" \
+            "${{ github.event.inputs.extract_pit }}" \
+            "${{ github.event.inputs.extract_wallpaper_res }}"
 
       - name: Get Firmware Info
         id: fwinfo

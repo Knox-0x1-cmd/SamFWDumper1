@@ -1,18 +1,10 @@
 # =============================================================================
-# SamFWDumper - Automated Samsung Firmware Extraction
+# SamFWDumper - Images Extractor
 # Copyright (C) 2026 Xiatsuma
 # Licensed under PolyForm Noncommercial License 1.0.0
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-# https://polyformproject.org/licenses/noncommercial/1.0.0
-#
-# You may NOT use this file except in compliance with the License.
-# Commercial use, removal of this header, or distribution without attribution
-# is strictly prohibited. For permissions: https://github.com/Xiatsuma
-=======
->>>>>>> Apps:.github/workflows/extract_apps.yml
 # =============================================================================
 
-name: 3. Special Targeted Extractor
+name: Images Extractor
 
 on:
   workflow_dispatch:
@@ -37,27 +29,75 @@ on:
         default: 'gofile'
         type: choice
         options:
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-        - 'gofile'
-        - 'github releases'
-      show_all:
-        description: 'Show ALL folders in app & priv-app'
-        type: boolean
-        default: false
-      output_name:
-        description: 'Output .zip name (default: Apps)'
-        required: false
-        default: 'Apps'
-=======
           - 'gofile'
           - 'github releases'
+      # Partition selection
+      extract_system:
+        description: 'system.img'
+        type: boolean
+        default: false
+      extract_system_ext:
+        description: 'system_ext.img'
+        type: boolean
+        default: false
+      extract_product:
+        description: 'product.img'
+        type: boolean
+        default: false
+      extract_vendor:
+        description: 'vendor.img'
+        type: boolean
+        default: false
+      extract_vendor_boot:
+        description: 'vendor_boot.img'
+        type: boolean
+        default: false
+      extract_vendor_dlkm:
+        description: 'vendor_dlkm.img'
+        type: boolean
+        default: false
+      extract_system_dlkm:
+        description: 'system_dlkm.img'
+        type: boolean
+        default: false
+      extract_odm:
+        description: 'odm.img'
+        type: boolean
+        default: false
+      extract_odm_dlkm:
+        description: 'odm_dlkm.img'
+        type: boolean
+        default: false
+      extract_boot:
+        description: 'boot.img'
+        type: boolean
+        default: false
+      extract_init_boot:
+        description: 'init_boot.img'
+        type: boolean
+        default: false
+      extract_vbmeta:
+        description: 'vbmeta.img'
+        type: boolean
+        default: false
+      extract_vbmeta_system:
+        description: 'vbmeta_system.img'
+        type: boolean
+        default: false
+      extract_dtbo:
+        description: 'dtbo.img'
+        type: boolean
+        default: false
+      extract_recovery:
+        description: 'recovery.img'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
->>>>>>> Apps:.github/workflows/extract_apps.yml
 
 jobs:
-  extract:
+  dump:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -76,30 +116,46 @@ jobs:
             lz4 \
             unzip \
             curl \
+            binutils \
             android-sdk-libsparse-utils \
             e2fsprogs \
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-            f2fs-tools \
-            linux-modules-extra-$(uname -r)
-=======
+            util-linux \
             2>/dev/null | tail -5
->>>>>>> Apps:.github/workflows/extract_apps.yml
 
       - name: Make tools executable
-        run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/extract_targeted.sh
+        run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/dump.sh
 
-<<<<<<< HEAD:.github/workflows/targeted_extractor.yml
-      - name: Run Targeted Extraction
-=======
-      - name: Run Apps Extraction
-        id: extract
->>>>>>> Apps:.github/workflows/extract_apps.yml
+      - name: Run Dump Script
+        id: dump
         run: |
-          bash scripts/extract_targeted.sh \
+          PARTITIONS=""
+          ${{ github.event.inputs.extract_system }} && PARTITIONS="$PARTITIONS system"
+          ${{ github.event.inputs.extract_system_ext }} && PARTITIONS="$PARTITIONS system_ext"
+          ${{ github.event.inputs.extract_product }} && PARTITIONS="$PARTITIONS product"
+          ${{ github.event.inputs.extract_vendor }} && PARTITIONS="$PARTITIONS vendor"
+          ${{ github.event.inputs.extract_vendor_boot }} && PARTITIONS="$PARTITIONS vendor_boot"
+          ${{ github.event.inputs.extract_vendor_dlkm }} && PARTITIONS="$PARTITIONS vendor_dlkm"
+          ${{ github.event.inputs.extract_system_dlkm }} && PARTITIONS="$PARTITIONS system_dlkm"
+          ${{ github.event.inputs.extract_odm }} && PARTITIONS="$PARTITIONS odm"
+          ${{ github.event.inputs.extract_odm_dlkm }} && PARTITIONS="$PARTITIONS odm_dlkm"
+          ${{ github.event.inputs.extract_boot }} && PARTITIONS="$PARTITIONS boot"
+          ${{ github.event.inputs.extract_init_boot }} && PARTITIONS="$PARTITIONS init_boot"
+          ${{ github.event.inputs.extract_vbmeta }} && PARTITIONS="$PARTITIONS vbmeta"
+          ${{ github.event.inputs.extract_vbmeta_system }} && PARTITIONS="$PARTITIONS vbmeta_system"
+          ${{ github.event.inputs.extract_dtbo }} && PARTITIONS="$PARTITIONS dtbo"
+          ${{ github.event.inputs.extract_recovery }} && PARTITIONS="$PARTITIONS recovery"
+          
+          PARTITIONS="${PARTITIONS# }"
+          
+          if [ -z "$PARTITIONS" ]; then
+            echo "❌ No partitions selected! Please check at least one box."
+            exit 1
+          fi
+          
+          bash scripts/dump.sh \
             "${{ github.event.inputs.url }}" \
             "${{ github.event.inputs.compression }}" \
-            "${{ github.event.inputs.show_all }}" \
-            "${{ github.event.inputs.output_name }}"
+            "$PARTITIONS"
 
       - name: Get Firmware Info
         id: fwinfo
@@ -126,7 +182,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ ! -d "output" ] || [ -z "$(ls -A output)" ]; then
+          if [ ! -d "processed" ] || [ -z "$(ls -A processed)" ]; then
             echo "❌ No files to upload"
             exit 1
           fi
@@ -135,8 +191,8 @@ jobs:
           LINKS_FILE="links.txt"
           > "$LINKS_FILE"
 
-          for FILE in output/*; do
-            [ -e "$FILE" ] || continue
+          for FILE in processed/*; do
+            [ -f "$FILE" ] || continue
             BASENAME=$(basename "$FILE")
             if bash upload_gofile.sh "$FILE"; then
               GOFILE_URL=$(cat download_url.txt)
@@ -159,7 +215,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ ! -d "output" ] || [ -z "$(ls -A output)" ]; then
+          if [ ! -d "processed" ] || [ -z "$(ls -A processed)" ]; then
             echo "❌ No files to upload"
             exit 1
           fi
@@ -168,21 +224,18 @@ jobs:
           ASSETS=()
           SIZE_LIMIT=2147483648
 
-          for FILE in output/*; do
-            [ -e "$FILE" ] || continue
-            if [ -d "$FILE" ]; then
-              FILESIZE=$(du -sb "$FILE" | cut -f1)
-            else
-              FILESIZE=$(stat -c%s "$FILE")
-            fi
+          for FILE in processed/*; do
+            [ -f "$FILE" ] || continue
+            FILESIZE=$(stat -c%s "$FILE")
             BASENAME=$(basename "$FILE")
+            PART_NAME=$(echo "$BASENAME" | sed 's/\.img.*//')
 
             if [ "$FILESIZE" -gt "$SIZE_LIMIT" ]; then
               if bash upload_gofile.sh "$FILE"; then
                 GOFILE_URL=$(cat download_url.txt)
-                echo "${BASENAME}: ${GOFILE_URL}" >> "$NOTES_FILE"
+                echo "${PART_NAME}: ${GOFILE_URL}" >> "$NOTES_FILE"
               else
-                echo "${BASENAME}: ❌ GoFile upload failed" >> "$NOTES_FILE"
+                echo "${PART_NAME}: ❌ GoFile upload failed" >> "$NOTES_FILE"
               fi
             else
               ASSETS+=("$FILE")
