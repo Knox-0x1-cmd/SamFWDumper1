@@ -2,7 +2,6 @@
 # SamFW Apps Extractor - Extract specific app folders from Samsung firmware
 # Copyright (C) 2026 Xiatsuma
 # Licensed under PolyForm Noncommercial License 1.0.0
-# https://polyformproject.org/licenses/noncommercial/1.0.0
 # =============================================================================
 
 name: Apps Extractor
@@ -13,50 +12,58 @@ on:
       url:
         description: 'SamFW Direct Download Link'
         required: true
+        type: string
       compression:
-        description: 'Compression level'
+        description: 'Compression level (0=fastest, 9=best)'
         required: true
         default: '0'
         type: choice
         options:
-        - '0'
-        - '3'
-        - '6'
-        - '9'
+          - '0'
+          - '3'
+          - '6'
+          - '9'
       upload_destination:
-        description: 'Upload destination'
+        description: 'Where to upload results'
         required: true
         default: 'gofile'
         type: choice
         options:
-        - 'gofile'
-        - 'github releases'
+          - 'gofile'
+          - 'github releases'
+
+permissions:
+  contents: write
 
 jobs:
   extract:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
             jq \
             xz-utils \
             lz4 \
             unzip \
             curl \
             android-sdk-libsparse-utils \
-            e2fsprogs
+            e2fsprogs \
+            2>/dev/null | tail -5
 
       - name: Make tools executable
         run: chmod +x tools/android-tools/* tools/erofs-utils/* upload_gofile.sh scripts/extract_apps.sh
 
       - name: Run Apps Extraction
+        id: extract
         run: |
           bash scripts/extract_apps.sh \
             "${{ github.event.inputs.url }}" \
@@ -156,4 +163,3 @@ jobs:
             "${ASSETS[@]}"
 
           rm -f "$NOTES_FILE"
-          

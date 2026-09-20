@@ -1,48 +1,107 @@
 #!/bin/bash
 # =============================================================================
-# SamFWDumper - Automated Samsung Firmware Extraction
+# SamFWDumper - GoFile Upload Script
 # Copyright (C) 2026 Xiatsuma
 # Licensed under PolyForm Noncommercial License 1.0.0
-# https://polyformproject.org/licenses/noncommercial/1.0.0
-#
-# You may NOT use this file except in compliance with the License.
-# Commercial use, removal of this header, or distribution without attribution
-# is strictly prohibited. For permissions: https://github.com/Xiatsuma
 # =============================================================================
-set -e
+set -euo pipefail
+
+# Colors
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
+
+log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
+log_success() { echo -e "${GREEN}[✓]${NC} $*"; }
+log_warning() { echo -e "${YELLOW}[!]${NC} $*"; }
+log_error() { echo -e "${RED}[✗]${NC} $*"; }
+
+# Configuration
+MAX_RETRIES=3
+RETRY_DELAY=5
+TIMEOUT=300
 
 FILE="$1"
-if [ ! -f "$FILE" ]; then
-  echo "❌ File not found: $FILE"
-  exit 1
-fi
+[[ -f "${FILE}" ]] || { echo "❌ File not found: ${FILE}" >&2; exit 1; }
 
-echo "Uploading to GoFile..."
+FILESIZE=$(stat -c%s "${FILE}")
+echo "[INFO] Uploading $(basename "${FILE}") ($(numfmt --to=iec ${FILESIZE}))..."
 
-TOKEN_RESPONSE=$(curl -s -X POST https://api.gofile.io/accounts)
-TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.data.token' 2>/dev/null)
+get_token() {
+    local retries=0
+    while [[ ${retries} -lt 3 ]]; do
+        local response
+        response=$(curl -s -X POST "https://api.gofile.io/accounts" --max-time 30)
+        local token
+        token=$(echo "${response}" | jq -r '.data.token' 2>/dev/null)
+        [[ -n "${token}" && "${token}" != "null" ]] && { echo "${token}"; return 0; }
+        ((retries++))
+        sleep 2
+    done
+    return 1
+}
 
-if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-  echo "❌ Failed to get GoFile token"
-  exit 1
-fi
+get_server() {
+    local token="$1"
+    local retries=0
+    while [[ ${retries} -lt 3 ]]; do
+        local server
+        server=$(curl -s "https://api.gofile.io/servers?token=${TOKEN}" --max-time 30 | jq -r '.data.servers[0].name' 2>/dev/null)
+        [[ -n "${server}" && "${server}" != "null" ]] && { echo "${server}"; return 0; }
+        ((retries++))
+        sleep 2
+    done
+    return 1
+}
 
-SERVER=$(curl -s "https://api.gofile.io/servers?token=$TOKEN" | jq -r '.data.servers[0].name' 2>/dev/null)
-[ -z "$SERVER" ] && SERVER="store1"
+upload_file() {
+    local token="$1"
+    local server="$2"
+    local file="$3"
+    
+    local retries=0
+    while [[ ${retries} -lt 3 ]]; do
+        local response
+        response=$(curl -s -X POST \
+            -F "file=@${FILE}" \
+            -F "token=${TOKEN}" \
+            --max-time 300 \
+            "https://${SERVER}.gofile.io/uploadFile")
+        
+        if echo "${response}" | grep -q '"status":"ok"'; then
+            local download_url
+            download_url=$(echo "${response}" | jq -r '.data.downloadPage')
+            echo "${download_url}"
+            return 0
+        fi
+        
+        ((retries++))
+        sleep 5
+    done
+    return 1
+}
 
-RESPONSE=$(curl -s -X POST \
-  -F "file=@$FILE" \
-  -F "token=$TOKEN" \
-  "https://${SERVER}.gofile.io/uploadFile")
+# Main
+FILE="${1:-}"
+[[ -f "${FILE}" ]] || { echo "❌ File not found: ${FILE}" >&2; exit 1; }
 
-if echo "$RESPONSE" | grep -q '"status":"ok"'; then
-  DOWNLOAD_URL=$(echo "$RESPONSE" | jq -r '.data.downloadPage')
-  echo "✅ Upload successful!"
-  echo "$DOWNLOAD_URL"
-  echo "$DOWNLOAD_URL" > download_url.txt
-  exit 0
-else
-  echo "❌ Upload failed"
-  echo "Response: $RESPONSE"
-  exit 1
-fi
+FILESIZE=$(stat -c%s "${FILE}")
+echo "[INFO] Uploading $(basename "${FILE}") ($(numfmt --to=iec ${FILESIZE}))..."
+
+# Get token
+TOKEN=$(get_token) || { echo "❌ Failed to get GoFile token" >&2; exit 1; }
+echo "[INFO] Got GoFile token"
+
+# Get server
+SERVER=$(get_server "${TOKEN}") || { echo "❌ Failed to get GoFile server" >&2; exit 1; }
+echo "[INFO] Using server: ${SERVER}"
+
+# Upload
+DOWNLOAD_URL=$(upload_file "${TOKEN}" "${SERVER}" "${FILE}") || { echo "❌ Upload failed after 3 attempts" >&2; exit 1; }
+
+echo "✅ Upload successful!"
+echo "${DOWNLOAD_URL}"
+echo "${DOWNLOAD_URL}" > download_url.txt
+exit 0
